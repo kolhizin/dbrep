@@ -1,2 +1,2 @@
-# dbsync
-Simple tool for syncing tables between different data bases
+# dbrep
+Package to sync tables across DBs, i.e. EL in ELT/ETL
