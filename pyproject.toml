@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "dbrep"
+version = "0.0.1"
+description = "Package to sync tables across DBs, i.e. EL in ELT/ETL"
+authors = ["Valentin  Stepanovich <kolhizin@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
