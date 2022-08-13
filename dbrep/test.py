@@ -1,2 +1,2 @@
-def test():
-    "This is simple test of package"
+def testfn():
+    return "This is simple test of package"
