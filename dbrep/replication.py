@@ -24,15 +24,15 @@ def incremental_update(srcEngine, dstEngine, repConfig):
 
         while True:
             logger.debug('Fetching src-batch')
-            src_batch = srcEngine.get_batch(src_batch_size)
+            src_names, src_batch = srcEngine.get_batch(src_batch_size)
             if src_batch is None or len(src_batch) == 0:
                 break
 
             for off in range(0, len(src_batch), dst_batch_size):
-                names, dst_batch = src_batch[off:(off + dst_batch_size)]
-                logger.debug('Saving dst-batch')
-                dstEngine.insert_batch(repConfig['dst'], dst_batch, names)
-            logger.debug('Saved src-batch')
+                dst_batch = src_batch[off:(off + dst_batch_size)]
+                logger.debug('Saving dst-batch [{}:{}]'.format(off, off+dst_batch_size))
+                dstEngine.insert_batch(repConfig['dst'], dst_batch, src_names)
+            logger.debug('Saved src-batch ({} records)'.format(len(src_batch)))
         
         logger.info('Finished sync. Updating <dst> rid...')
         dst_rid = dstEngine.get_latest_rid(repConfig['dst'])
