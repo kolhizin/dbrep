@@ -23,6 +23,7 @@ class SQLAlchemyEngine(BaseEngine):
         self.engine = sqlalchemy.create_engine(connection_config['conn-str'])
         self.conn = self.engine.connect()
         self.template_select_inc = 'select * from {src} where {rid} > {rid_value} order by {rid}'
+        self.template_select_inc_null = 'select * from {src} order by {rid}'
         self.template_select_all = 'select * from {src}'
         self.template_select_rid = 'select max({rid}) from {src}'
         self.make_query = sqlalchemy.text
@@ -35,10 +36,13 @@ class SQLAlchemyEngine(BaseEngine):
             rid=rid_config['rid']
         ))
         res = self.conn.execute(query).fetchall()
+        if res is None or len(res) == 0:
+            return None
         return res[0][0]
 
     def start_get_inc(self, src_config, min_rid):
-        query = self.make_query(self.template_select_inc.format(
+        template = self.template_select_inc if min_rid else self.template_select_inc_null
+        query = self.make_query(template.format(
             src='({}) t'.format(src_config['query']) if 'query' in src_config else src_config['table'],
             rid=src_config['rid'],
             rid_value=min_rid

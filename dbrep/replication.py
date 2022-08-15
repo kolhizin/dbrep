@@ -8,6 +8,8 @@ def full_refresh(srcEngine, dstEngine, repConfig):
 def incremental_update(srcEngine, dstEngine, repConfig):
     logger.debug('Making request to get <src> latest rid...')
     src_rid = srcEngine.get_latest_rid(repConfig['src'])
+    if src_rid is None:
+        raise NotImplemented
 
     logger.debug('Making request to get <dst> latest rid...')
     dst_rid = dstEngine.get_latest_rid(repConfig['dst'])
@@ -16,7 +18,7 @@ def incremental_update(srcEngine, dstEngine, repConfig):
 
     src_batch_size = repConfig['src'].get('batch_size', 1000)
     dst_batch_size = repConfig['dst'].get('batch_size', 1000)
-    while dst_rid < src_rid:
+    while not dst_rid or dst_rid < src_rid:
         logger.info('Starting src-request')
         srcEngine.start_get_inc(repConfig['src'], dst_rid)
 
