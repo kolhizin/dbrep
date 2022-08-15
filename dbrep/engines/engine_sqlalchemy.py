@@ -20,7 +20,7 @@ class SQLAlchemyEngine(BaseEngine):
                         *[sqlalchemy.Column(x) for x in col_names]
                     )
 
-        self.engine = sqlalchemy.create_engine(connection_config['conn_str'])
+        self.engine = sqlalchemy.create_engine(connection_config['conn-str'])
         self.conn = self.engine.connect()
         self.template_select_inc = 'select * from {src} where {rid} > {rid_value} order by {rid}'
         self.template_select_all = 'select * from {src}'
@@ -54,7 +54,7 @@ class SQLAlchemyEngine(BaseEngine):
     def get_batch(self, batch_size):
         if not self.active_cursor:
             raise Exception()
-        keys = self.active_cursor.keys()
+        keys = list(self.active_cursor.keys())
         return keys, self.active_cursor.fetchmany(batch_size)
 
     def insert_batch(self, dst_config, batch, names):
