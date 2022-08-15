@@ -1,5 +1,4 @@
 from cmath import log
-import base
 import logging
 
 logger = logging.getLogger(__name__)
