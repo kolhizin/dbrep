@@ -16,7 +16,7 @@ class SQLAlchemyEngine(BaseEngine):
     def __init__(self, connection_config):
         import sqlalchemy #import only here when it will be actually used
         def make_table_(table_name, col_names):
-            return sqlalchemy.table(table_name, sqlalchemy.MetaData(),
+            return sqlalchemy.Table(table_name, sqlalchemy.MetaData(),
                         *[sqlalchemy.Column(x) for x in col_names]
                     )
 
