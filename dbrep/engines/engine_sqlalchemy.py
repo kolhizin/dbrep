@@ -10,6 +10,8 @@
 #
 # HENCE primary solution to test against pandas: mogrify inside python, insert with several simple executes
 
+import functools
+
 from .engine_base import BaseEngine
 
 class SQLAlchemyEngine(BaseEngine):
@@ -26,47 +28,58 @@ class SQLAlchemyEngine(BaseEngine):
         self.template_select_inc_null = 'select * from {src} order by {rid}'
         self.template_select_all = 'select * from {src}'
         self.template_select_rid = 'select max({rid}) from {src}'
+        self.template_truncate = 'truncate table {src}'
         self.make_query = sqlalchemy.text
         self.make_table = lambda table_name, col_names: make_table_(table_name, col_names)
+        self.active_insert = None
         self.active_cursor = None
 
-    def get_latest_rid(self, rid_config):
+    def _execute(self, *args, **kwargs):
+        try:
+            return self.conn.execute(*args, **kwargs)
+        except ConnectionError:
+            self.conn = self.engine.connect()
+            return self.conn.execute(*args, **kwargs)
+
+    def get_latest_rid(self, config):
         query = self.make_query(self.template_select_rid.format(
-            src='({}) t'.format(rid_config['query']) if 'query' in rid_config else rid_config['table'],
-            rid=rid_config['rid']
+            src='({}) t'.format(config['query']) if 'query' in config else config['table'],
+            rid=config['rid']
         ))
-        res = self.conn.execute(query).fetchall()
+        res = self._execute(query).fetchall()
         if res is None or len(res) == 0:
             return None
         return res[0][0]
 
-    def start_get_inc(self, src_config, min_rid):
+    def begin_incremental_fetch(self, config, min_rid):
         template = self.template_select_inc if min_rid else self.template_select_inc_null
         query = self.make_query(template.format(
-            src='({}) t'.format(src_config['query']) if 'query' in src_config else src_config['table'],
-            rid=src_config['rid'],
+            src='({}) t'.format(config['query']) if 'query' in config else config['table'],
+            rid=config['rid'],
             rid_value=min_rid
         ))
-        self.active_cursor = self.conn.execute(query)
+        self.active_cursor = self._execute(query)
 
-    def start_get_all(self, src_config):
+    def begin_full_fetch(self, config):
         query = self.make_query(self.template_select_all.format(
-            src='({}) t'.format(src_config['query']) if 'query' in src_config else src_config['table']
+            src='({}) t'.format(config['query']) if 'query' in config else config['table']
         ))
-        self.active_cursor = self.conn.execute(query)
+        self.active_cursor = self._execute(query)
 
-    def get_batch(self, batch_size):
+    def begin_insert(self, config):
+        self.active_insert = functools.partial(self.make_table, table_name=config['table'])
+
+    def fetch_batch(self, batch_size):
         if not self.active_cursor:
             raise Exception()
         keys = list(self.active_cursor.keys())
         return keys, self.active_cursor.fetchmany(batch_size)
 
-    def insert_batch(self, dst_config, batch, names):
-        table = self.make_table(dst_config['table'], names)
-        self.conn.execute(table.insert(), [dict(zip(names, x)) for x in batch])
+    def insert_batch(self, names, batch):
+        self._execute(self.active_insert(names).insert(), [dict(zip(names, x)) for x in batch])
 
-    def truncate(self, dst_config):
-        raise NotImplemented
+    def truncate(self, config):
+        self._execute(self.truncate_template.format(config['table']))
 
-    def create(self, dst_config):
-        raise NotImplemented
+    def create(self, config):
+        self._execute(config['create'])

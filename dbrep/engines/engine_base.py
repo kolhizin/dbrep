@@ -1,24 +1,22 @@
 class BaseEngine:
+    """
+    Base abstract class for engine (connection) to data source/destination (e.g. database, message queue or pubsub).
+    Purpose of this class is to provide getter/setter interface.
+    """
     def __init__(self):
         pass
 
-    def get_latest_rid(self, rid_config):
+    def get_latest_rid(self, config):
         raise NotImplemented
 
-    def start_get_inc(self, src_config, min_rid):
+    def begin_incremental_fetch(self, config, min_rid):
         raise NotImplemented
 
-    def start_get_all(self, src_config):
+    def begin_full_fetch(self, config):
         raise NotImplemented
 
-    def get_batch(self, batch_size):
+    def truncate(self, config):
         raise NotImplemented
 
-    def insert_batch(self, dst_config, batch, names):
-        raise NotImplemented
-
-    def truncate(self, dst_config):
-        raise NotImplemented
-
-    def create(self, dst_config):
+    def create(self, config):
         raise NotImplemented
