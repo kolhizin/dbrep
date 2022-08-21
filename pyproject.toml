@@ -13,3 +13,6 @@ python = "^3.6"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+dbrep = 'dbrep.cli:cli_dbrep'
