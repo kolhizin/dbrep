@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 from typing import Dict, Optional, Union
 
 from cryptography.fernet import Fernet
@@ -9,7 +10,12 @@ from .config import make_config, merge_config, substitute_config
 from .replication import full_refresh, incremental_update
 from . import create_engine, add_engine_factory
 
-logger = logging.getLogger(__name__)
+logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
+logger = logging.getLogger()
+consoleHandler = logging.StreamHandler(stream=sys.stdout)
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
+logger.setLevel(logging.DEBUG)
 
 class StoreDictKeyPair(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
@@ -103,14 +109,12 @@ def make_engine(conn_config: Union[Dict, str], full_config: Dict):
     if not isinstance(config, dict):
         raise TypeError('Connection config should be dict with at least `engine` field, but got {}'.format(type(config)))
     if 'engine' not in config:
-        print(config)
         raise ValueError('Connection config should contain at least `engine` field')
 
     return create_engine(config['engine'], config)
 
 def run(config : Dict):
     init_factory()
-    print('Invoke run with config: {}'.format(config))
     if 'run' not in config:
         raise ValueError("Must specify `run` parameter: either name of replication from config, or dictionary specifying replication!")
 
@@ -130,11 +134,8 @@ def run(config : Dict):
     dst_engine = make_engine(run_config['dst']['conn'], config)
 
     if run_config['mode'] == 'full-refresh':
-        print('Running full-refresh: {}'.format(run_config))
-        #return full_refresh(src_engine, dst_engine, run_config)
-        return 0
+        return full_refresh(src_engine, dst_engine, run_config)
     elif run_config['mode'] == 'incremental':
-        print('Running incremental: {}'.format(run_config))
-        return 0
+        return incremental_update(src_engine, dst_engine, run_config)
     else:
         raise ValueError("Unsupported mode: {}. Should be full-refresh or incremental".format(run_config['mode']))

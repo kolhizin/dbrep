@@ -10,12 +10,12 @@ def push_batch(engine, names, data, batch_size):
     for off in range(0, len(data), batch_size):
         batch = data[off:(off + batch_size)]
         logger.debug('Pushing dst-batch [{}:{}] of size {}'.format(off, min(len(batch), off+batch_size), len(batch)))
-        engine.insert_batch(batch, names)
+        engine.insert_batch(names, batch)
         logger.debug('Pushed dst-batch [{}:{}] of size {}'.format(off, min(len(batch), off+batch_size), len(batch)))
 
 def pull_batch(engine, batch_size):
     logger.debug('Pulling src-batch')
-    names, batch = engine.get_batch(batch_size)
+    names, batch = engine.fetch_batch(batch_size)
     logger.debug('Pulled src-batch of size {}'.format(len(batch)))
     return names, batch
 

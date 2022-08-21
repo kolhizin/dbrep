@@ -78,7 +78,7 @@ class SQLAlchemyEngine(BaseEngine):
         return keys, self.active_cursor.fetchmany(batch_size)
 
     def insert_batch(self, names, batch):
-        self._execute(self.active_insert(names).insert(), [dict(zip(names, x)) for x in batch])
+        self._execute(self.active_insert(col_names=names).insert(), [dict(zip(names, x)) for x in batch])
 
     def truncate(self, config):
         self._execute(self.truncate_template.format(config['table']))
