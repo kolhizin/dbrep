@@ -7,6 +7,10 @@ __pycache__/
 .devcontainer/
 .vscode/
 
+# DBREP Configs & Secrets
+*.yaml
+*.cred
+
 # C extensions
 *.so
 

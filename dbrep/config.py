@@ -17,10 +17,10 @@ So there must be a way to combine these multiple configs into single one. This c
 import string
 import functools
 import copy
+from typing import Any, Dict, List, Tuple
 
 
-
-def make_config(list_of_pairs):
+def make_config(list_of_pairs : List[Tuple[str, Any]]) -> Dict:
     res = {}
     for k,v in list_of_pairs:
         keys = k.split('.')
@@ -32,7 +32,7 @@ def make_config(list_of_pairs):
         cur[keys[-1]] = v
     return res
 
-def config_union(*args):    
+def merge_config(*args : Dict) -> Dict:    
     def merge_dict(d1, d2):
         if isinstance(d1, dict) and isinstance(d2, dict):
             return {k: merge_dict(d1.get(k), d2.get(k)) for k in set.union(set(d1), set(d2))}
@@ -40,7 +40,7 @@ def config_union(*args):
     return functools.reduce(merge_dict, args, {})
 
 
-def flatten_config(config, prefix = ''):
+def flatten_config(config : Dict, prefix : str = '') -> Dict:
     if not prefix:
         formatter = '{}'
     else:
@@ -53,9 +53,9 @@ def flatten_config(config, prefix = ''):
     return res
 
 class TemplateDotted(string.Template):
-    braceidpattern = '[_a-z][_a-z0-9\.]*'
+    braceidpattern = '[_a-z][_a-z0-9\.@\-]*'
 
-def substitute_config(config):
+def substitute_config(config : Dict) -> Dict:
     def replace_template(val, mapping):
         if isinstance(val, dict):
             return {k: replace_template(v, mapping) for k,v in val.items()}

@@ -3,6 +3,7 @@ class BaseEngine:
     Base abstract class for engine (connection) to data source/destination (e.g. database, message queue or pubsub).
     Purpose of this class is to provide getter/setter interface.
     """
+    id = 'abstract'
     def __init__(self):
         pass
 

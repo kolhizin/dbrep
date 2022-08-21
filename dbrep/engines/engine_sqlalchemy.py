@@ -13,8 +13,10 @@
 import functools
 
 from .engine_base import BaseEngine
+from .. import add_engine_factory
 
 class SQLAlchemyEngine(BaseEngine):
+    id = 'sqlalchemy'
     def __init__(self, connection_config):
         import sqlalchemy #import only here when it will be actually used
         def make_table_(table_name, col_names):
@@ -83,3 +85,5 @@ class SQLAlchemyEngine(BaseEngine):
 
     def create(self, config):
         self._execute(config['create'])
+
+add_engine_factory(SQLAlchemyEngine.id, SQLAlchemyEngine)

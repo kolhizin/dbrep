@@ -7,6 +7,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.6"
+PyYAML = "^6.0"
+cryptography = "^37.0.4"
+SQLAlchemy = "^1.4.40"
 
 [tool.poetry.dev-dependencies]
 
