@@ -21,6 +21,8 @@ from typing import Any, Dict, List, Tuple
 
 
 def make_config(list_of_pairs : List[Tuple[str, Any]]) -> Dict:
+    if not list_of_pairs: #None, empty list and other should evaluate to empty dict
+        return {}
     res = {}
     for k,v in list_of_pairs:
         keys = k.split('.')
@@ -41,6 +43,8 @@ def merge_config(*args : Dict) -> Dict:
 
 
 def flatten_config(config : Dict, prefix : str = '') -> Dict:
+    if not config: #None, empty dict and other should evaluate to empty dict
+        return {}
     if not prefix:
         formatter = '{}'
     else:
@@ -53,7 +57,7 @@ def flatten_config(config : Dict, prefix : str = '') -> Dict:
     return res
 
 class TemplateDotted(string.Template):
-    braceidpattern = '[_a-z][_a-z0-9\.@\-]*'
+    braceidpattern = r'[_a-z][_a-z0-9\.@\-]*'
 
 def substitute_config(config : Dict) -> Dict:
     def replace_template(val, mapping):
@@ -62,6 +66,9 @@ def substitute_config(config : Dict) -> Dict:
         if isinstance(val, str):
             return TemplateDotted(val).substitute(mapping)
         return val
+        
+    if not config: #None, empty dict and other should evaluate to empty dict
+        return {}
     flat_conf = flatten_config(config)
     while True:
         new_conf = replace_template(flat_conf, copy.deepcopy(flat_conf))
