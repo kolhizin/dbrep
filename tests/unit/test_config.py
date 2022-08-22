@@ -1,4 +1,3 @@
-import pytest
 import dbrep.config
 import copy
 
