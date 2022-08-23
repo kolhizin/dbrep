@@ -38,6 +38,46 @@ def merge_outputs(out1: List[List[Any]], out2: List[List[Any]]) -> List[List[Tup
     d2 = {x[0]: x for x in out2}
     return [merge_row(d1.get(k), d2.get(k)) for k in all_keys]
 
+
+def gather_exceptions(input: List[List[Tuple[Any, Any]]], test: Callable[[Tuple[Any, Any]], None]) -> List[List[Any]]:
+    def gather_exc_(x: Tuple[Any, Any]) -> Any:
+        try:
+            test(x)
+            return None
+        except Exception as e:
+            return type(e), e.args #if return just e it would not compare to itself and won't produce set
+    return [[gather_exc_(x) for x in row] for row in input]
+
+def agg_row_stats(input: List[List[Any]]) -> List[Set[Any]]:
+    return [set(x for x in row if x is not None) for row in input]
+
+def agg_col_stats(input: List[List[Any]]) -> List[Set[Any]]:
+    if len(input) == 0:
+        return []
+    num_cols = len(input[0])
+    return [set(r[i] for r in input if r[i] is not None) for i in range(num_cols)]
+
+def agg_all_stats(input: List[List[Any]]) -> Set[Any]:
+    return set(x for row in input for x in row if x is not None)
+
+def run_tests(input: List[List[Tuple[Any, Any]]], test: Callable[[Tuple[Any, Any]], None], report_cols : bool = False):
+    def format_exc_(exc):
+        exc_type, exc_args = exc
+        return '{}({})'.format(exc_type, '.'.join(exc_args))
+    def format_exc_set_(excs):
+        if len(excs) == 0:
+            return '[]'
+        return '[{}]'.format(', '.join(format_exc_(x) for x in excs))
+    res = gather_exceptions(input, test)
+    total = agg_all_stats(res)
+    if len(total) == 0:
+        return
+    report = 'Triggered exceptions: {}'.format(format_exc_set_(total))
+    if report_cols:
+        cols = agg_col_stats(res)
+        report += '\nExceptions by cols:\n{}'.format('\n'.join(format_exc_set_(x) for x in cols))
+    raise Exception(report)
+
 def test_elem_typing(input: Tuple[Any, Any]):
     if not isinstance(input, tuple):
         raise TypeError('Element should be tuple of length=2, but got type={}'.format(type(input)))
@@ -62,42 +102,5 @@ def test_elem_type(input: Tuple[Any, Any]):
 def test_elem_value(input: Tuple[Any, Any]):
     a, b = input
     if a != b:
-        raise ValueError('Types differ: {} vs {}'.format(a, b))
+        raise ValueError('Values differ: {} vs {}'.format(a, b))
     return
-
-def gather_exceptions(input: List[List[Tuple[Any, Any]]], test: Callable[[Tuple[Any, Any]], None]) -> List[List[Any]]:
-    def gather_exc_(x: Tuple[Any, Any]) -> Any:
-        try:
-            test(x)
-            return None
-        except Exception as e:
-            return type(e), e.args #if return just e it would not compare to itself and won't produce set
-    return [[gather_exc_(x) for x in row] for row in input]
-
-def agg_row_stats(input: List[List[Any]]) -> List[Set[Any]]:
-    return [set(x for x in row if x is not None) for row in input]
-
-def agg_col_stats(input: List[List[Any]]) -> List[Set[Any]]:
-    num_cols = len(input[0])
-    return [set(r[i] for r in input if r[i] is not None) for i in range(num_cols)]
-
-def agg_all_stats(input: List[List[Any]]) -> Set[Any]:
-    return set(x for row in input for x in row if x is not None)
-
-def run_tests(input: List[List[Tuple[Any, Any]]], test: Callable[[Tuple[Any, Any]], None], report_cols : bool = False):
-    def format_exc_(exc):
-        exc_type, exc_args = exc
-        return '{}({})'.format(exc_type, '.'.join(exc_args))
-    def format_exc_set_(excs):
-        if len(excs) == 0:
-            return '[]'
-        return '[{}]'.format(', '.join(format_exc_(x) for x in excs))
-    res = gather_exceptions(input, test)
-    total = agg_all_stats(res)
-    if len(total) == 0:
-        return
-    report = 'Triggered exceptions: {}'.format(format_exc_set_(total))
-    if report_cols:
-        cols = agg_col_stats(res)
-        report += '\nExceptions by cols:\n{}'.format('\n'.join(format_exc_set_(x) for x in cols))
-    raise Exception(report)
