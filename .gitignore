@@ -8,7 +8,6 @@ __pycache__/
 .vscode/
 
 # DBREP Configs & Secrets
-*.yaml
 *.cred
 
 # C extensions

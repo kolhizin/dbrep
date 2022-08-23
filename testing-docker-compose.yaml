@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  test-postgres:
+    image: postgres:14.1-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 5432:5432
+    volumes: 
+      - test-postgres-vol:/var/lib/postgresql/data
+  test-app:
+    build:
+      dockerfile: testing-dockerfile
+    depends_on:
+      - test-postgres
+    command: ["poetry", "run", "pytest"]
+
+volumes:
+  test-postgres-vol:
+    driver: local
