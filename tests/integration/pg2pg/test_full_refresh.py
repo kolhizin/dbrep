@@ -5,6 +5,7 @@ import sqlalchemy
 
 import dbrep.engines.engine_sqlalchemy
 import dbrep.utils
+import dbrep.replication
 
 def init_engine(user='postgres', password='postgres', db='postgres', host='127.0.0.1:5432'):
     conn_str = 'postgresql+psycopg2://{}:{}@{}/{}'.format(user, password, host, db)
@@ -66,6 +67,11 @@ def test_simple():
     engine.execute("insert into test_src (col_int) values (1), (2), (3)")
     engine.execute("insert into test_src (col_str) values ('a'), ('b'), ('c')")
     
-    engine.execute("insert into test_dst select rid, coalesce(col_int, -1), col_str from test_src")
+    src_engine = dbrep.engines.engine_sqlalchemy.SQLAlchemyEngine({'conn-str': 'postgresql+psycopg2://postgres:postgres@test-postgres:5432/postgres'})
+    dst_engine = dbrep.engines.engine_sqlalchemy.SQLAlchemyEngine({'conn-str': 'postgresql+psycopg2://postgres:postgres@test-postgres:5432/postgres'})
+    dbrep.replication.full_refresh(src_engine, dst_engine, {
+        'src': {'table': 'test_src'},
+        'dst': {'table': 'test_dst'}
+    })
 
     compare_results(engine.execute('select * from test_src'), engine.execute('select * from test_dst'))
