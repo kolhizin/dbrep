@@ -1,0 +1,20 @@
+test_int_pg:
+  driver: test-pg
+  setup: create table test_src (rid serial, int_col integer)
+  steps:
+    - insert into table test_src (int_col) values (0), (3), (NULL)
+    - insert into table test_src (int_col) values (11), (14)
+  cleanup: drop table if exists test_src
+  config:
+    conn: postgre@test
+    table: test_src
+    rid: rid
+  dst:
+    2pg:
+      driver: test-pg
+      setup: create table test_dst (rid integer, int_col integer)
+      cleanup: drop table if exists test_dst
+      config:
+        conn: postgre@test
+        table: test_dst
+        rid: rid
