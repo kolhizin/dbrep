@@ -42,8 +42,8 @@ def run_test(mode, src_test, dst_test, config):
     print('Creating drivers & connections')
     src_driver = create_driver(drivers[src_test['driver']])
     dst_driver = create_driver(drivers[dst_test['driver']])
-    src_engine = dbrep.cli.make_engine(src_test['config']['conn'], config)
-    dst_engine = dbrep.cli.make_engine(dst_test['config']['conn'], config)
+    #src_engine = dbrep.cli.make_engine(src_test['config']['conn'], config)
+    #dst_engine = dbrep.cli.make_engine(dst_test['config']['conn'], config)
     run_config = {'src': src_test['config'], 'dst': dst_test['config']}
     print('Created drivers & connections')
     try:
