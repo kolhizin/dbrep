@@ -8,7 +8,7 @@ import yaml
 
 from .config import make_config, merge_config, substitute_config
 from .replication import full_refresh, incremental_update
-from . import create_engine, add_engine_factory
+from . import create_engine, add_engine_factory, init_factory
 
 logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
 logger = logging.getLogger()
@@ -92,9 +92,6 @@ def manage_secrets(args):
 def manage_configs(args):
     print('Invoke configs with args: {}'.format(args))
 
-def init_factory():
-    from .engines.engine_sqlalchemy import SQLAlchemyEngine
-    add_engine_factory(SQLAlchemyEngine.id, SQLAlchemyEngine)
 
 def make_engine(conn_config: Union[Dict, str], full_config: Dict):
     if isinstance(conn_config, str):

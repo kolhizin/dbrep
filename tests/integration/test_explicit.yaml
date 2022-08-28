@@ -9,6 +9,7 @@ tests:
         conn: postgres
         table: test_dst
         rid: rid
+      mode: incremental
     test:
       src:
         setup:
@@ -32,17 +33,13 @@ tests:
         conn: postgres
         table: test_dst
         rid: rid
+      mode: incremental
     test:
       src:
         setup:
           - create table test_src (rid serial, int_col integer)
         stages:
-          - expect: ok
-          - expect: error
-            run: false
-            steps: insert into test_src (int_col) values (0), (3), (NULL)
-          - expect: ok
-            run: true
+          - steps: insert into test_src (int_col) values (0), (3), (NULL)
           - steps: insert into test_src (int_col) values (11), (14)
         cleanup:
           - drop table if exists test_src

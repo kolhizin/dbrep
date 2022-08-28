@@ -19,5 +19,5 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    #command: ["poetry", "run", "python", "run_tests.py"]
-    command: ["poetry", "run", "pytest"]
+    command: ["poetry", "run", "python", "test.py"]
+    #command: ["poetry", "run", "pytest"]

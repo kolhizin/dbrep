@@ -30,5 +30,5 @@ def is_explicit_test(config):
         and 'tests' not in config and 'configs' not in config
 
 def make_explicit_tests(config):
-    result = [dict(name=k, **v) for k,v in config.items() if is_explicit_test(v)]
+    result = [dict(name=k, **v) for k,v in config['tests'].items() if is_explicit_test(v)]
     return result
