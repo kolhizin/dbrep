@@ -1,8 +1,4 @@
-connections:
-  postgre@test:
-    engine: sqlalchemy
-    conn-str: 'postgresql+psycopg2://postgres:postgres@postgres:5432/postgres'
-drivers:
-  test-pg:
-    type: sqlalchemy
-    conn-str: 'postgresql+psycopg2://postgres:postgres@postgres:5432/postgres'
+postgres:
+  engine: sqlalchemy
+  test-driver: sqlalchemy
+  conn-str: 'postgresql+psycopg2://postgres:postgres@postgres:5432/postgres'

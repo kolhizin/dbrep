@@ -1,0 +1,53 @@
+tests:
+  test_int_pg2pg:
+    config:
+      src:
+        conn: postgres
+        table: test_src
+        rid: rid
+      dst:
+        conn: postgres
+        table: test_dst
+        rid: rid
+    test:
+      src:
+        setup:
+          - create table test_src (rid serial, int_col integer)
+          - insert into test_src (int_col) values (0), (3), (NULL)
+          - insert into test_src (int_col) values (11), (14)
+        cleanup:
+          - drop table if exists test_src
+      dst:
+        setup:
+          - create table test_dst (rid int, int_col integer)
+        cleanup:
+          - drop table if exists test_dst
+  test_multistage_int_pg2pg:
+    config:
+      src:
+        conn: postgres
+        table: test_src
+        rid: rid
+      dst:
+        conn: postgres
+        table: test_dst
+        rid: rid
+    test:
+      src:
+        setup:
+          - create table test_src (rid serial, int_col integer)
+        stages:
+          - expect: ok
+          - expect: error
+            run: false
+            steps: insert into test_src (int_col) values (0), (3), (NULL)
+          - expect: ok
+            run: true
+          - steps: insert into test_src (int_col) values (11), (14)
+        cleanup:
+          - drop table if exists test_src
+      dst:
+        setup:
+          - create table test_dst (rid int, int_col integer)
+        cleanup:
+          - drop table if exists test_dst

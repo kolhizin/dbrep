@@ -1,8 +1,31 @@
+from asyncio.log import logger
 import os
+import logging
+logger = logging.getLogger()
+
 import yaml
 import dbrep
 import dbrep.cli
 from dbrep.replication import full_refresh, incremental_update
+
+class TestDriverSQLAlchemy:
+    def __init__(self, config):
+        import sqlalchemy
+        self.engine = sqlalchemy.create_engine(config['conn-str'])
+
+    def execute(self, query):
+        try:
+            print('1-Start({}, {}): {}'.format(self, self.engine, query))
+            with self.engine.connect() as conn:
+                res = conn.execute(query)
+                if res is not None:
+                    res.close()
+                conn.commit_prepared()
+                conn.close()
+        except:
+            print('1-Fail')
+        else:
+            print('1-Success')
 
 def multi_execute(driver, stmts):
     if stmts is None:
@@ -15,8 +38,7 @@ def multi_execute(driver, stmts):
 
 def create_driver(config):
     if config['type'] == 'sqlalchemy':
-        import sqlalchemy
-        return sqlalchemy.create_engine(config['conn-str'])
+        return TestDriverSQLAlchemy(config)
     raise ValueError('Unexpected type of test driver: {}'.format(config['type']))
     return None
 
@@ -42,24 +64,51 @@ def run_test(mode, src_test, dst_test, config):
     print('Creating drivers & connections')
     src_driver = create_driver(drivers[src_test['driver']])
     dst_driver = create_driver(drivers[dst_test['driver']])
-    #src_engine = dbrep.cli.make_engine(src_test['config']['conn'], config)
-    #dst_engine = dbrep.cli.make_engine(dst_test['config']['conn'], config)
     run_config = {'src': src_test['config'], 'dst': dst_test['config']}
     print('Created drivers & connections')
     try:
+        logger.debug('Starting src setups')
         multi_execute(src_driver, src_test.get('setup'))
+        logger.debug('Finished src setups')
         try:
+            logger.debug('Finished dst setups')
             multi_execute(dst_driver, dst_test.get('setup'))
-            run_replication(mode, src_engine, dst_engine, run_config)
-            test_replication(src_driver, dst_driver, run_config)
-            for cmd in steps:
-                src_driver.execute(cmd)
+            logger.debug('Finished dst setups')
+
+
+            src_engine = dbrep.cli.make_engine(src_test['config']['conn'], config)
+            dst_engine = dbrep.cli.make_engine(dst_test['config']['conn'], config)
+            try:
+                logger.debug('Starting replication initial step')
                 run_replication(mode, src_engine, dst_engine, run_config)
+                logger.debug('Finished replication initial step, starting testing')
                 test_replication(src_driver, dst_driver, run_config)
+                logger.debug('Finished initial step testing')
+                for cmd in steps:
+                    logger.debug('Executing commands ({}) in src'.format(cmd))
+                    multi_execute(src_driver, cmd)
+                    logger.debug('Executed commands in src, starting replication')
+                    run_replication(mode, src_engine, dst_engine, run_config)
+                    logger.debug('Finished replication step, starting testing')
+                    test_replication(src_driver, dst_driver, run_config)
+                    logger.debug('Finished step testing')
+            finally:
+                logger.debug('Closing connections')
+                src_engine.conn.close()
+                dst_engine.conn.close()
+                src_engine.engine.dispose()
+                dst_engine.engine.dispose()
+                logger.debug('Closed connections')
         finally:
-                multi_execute(dst_driver, dst_test.get('cleanup'))
+            logger.debug('Starting dst cleanup')
+            multi_execute(dst_driver, dst_test.get('cleanup'))
+            dst_driver.engine.dispose()
+            logger.debug('Finished dst cleanup')
     finally:
+        logger.debug('Starting src cleanup')
         multi_execute(src_driver, src_test.get('cleanup'))
+        src_driver.engine.dispose()
+        logger.debug('Finished src cleanup')
 
 if __name__ == '__main__':
     dbrep.cli.init_factory()
@@ -75,7 +124,16 @@ if __name__ == '__main__':
             tmp = yaml.safe_load(f.read().decode('utf8'))
         tests.update(tmp['tests'] if 'tests' in tmp else tmp)
 
+    results = []
     for src_name, src_test in tests.items():
         for dst_name, dst_test in src_test['dst'].items():
             for mode in modes:
-                run_test(mode, src_test, dst_test, config)
+                try:
+                    run_test(mode, src_test, dst_test, config)
+                    results.append((src_name, dst_name, mode, None))
+                    logger.info('Test [{}, {}, {}] succeeded'.format(src_name, dst_name, mode))
+                except Exception as e:
+                    results.append((src_name, dst_name, mode, e))
+                    logger.info('Test [{}, {}, {}] failed: {}'.format(src_name, dst_name, mode, e))
+                except:
+                    print('Strange..')

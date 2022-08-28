@@ -1,8 +1,27 @@
 import time
+import os
 
 import sqlalchemy
+import yaml
 
 import dbrep.utils
+
+def flatten_test_configs(name, test):
+    src = {k: test[k] for k in ['setup', 'steps', 'cleanup', 'config'] if k in test}
+    return [{'src': src, 'dst': v, 'name': ''.join([name, k])} for k, v in test['dst'].items()]
+
+
+def read_config():
+    with open('connections.yaml', 'rb') as f:
+        config = yaml.safe_load(f.read().decode('utf8'))
+
+    test_files = [x for x in os.listdir('./') if x.startswith('test_') and (x.endswith('.yaml') or x.endswith('.yml'))]
+    tests = {}
+    for tf in test_files:
+        with open(tf, 'rb') as f:
+            tmp = yaml.safe_load(f.read().decode('utf8'))
+        tests.update(tmp['tests'] if 'tests' in tmp else tmp)
+    return {'tests': [x for k,v in tests.items() for x in flatten_test_configs(k,v)], 'connections': config}
 
 def sqla_check_connection(conn_str):
     engine = sqlalchemy.create_engine(conn_str)

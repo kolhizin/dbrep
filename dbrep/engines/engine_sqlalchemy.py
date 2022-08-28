@@ -85,5 +85,9 @@ class SQLAlchemyEngine(BaseEngine):
 
     def create(self, config):
         self._execute(config['create'])
+    
+    def close(self):
+        self.conn.close()
+        self.engine.dispose()
 
 add_engine_factory(SQLAlchemyEngine.id, SQLAlchemyEngine)
