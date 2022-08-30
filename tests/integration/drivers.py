@@ -5,6 +5,7 @@ class TestDriverSQLAlchemy:
     def __init__(self, config):
         import sqlalchemy
         self.engine = sqlalchemy.create_engine(config['conn-str'])
+        self.engine.connect().close() #raise exception if can not connect
         self.config = copy.deepcopy(config)
 
     def execute(self, query):

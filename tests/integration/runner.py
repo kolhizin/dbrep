@@ -39,7 +39,7 @@ def make_test_driver(config):
         try:
             return TestDriverSQLAlchemy(config)
         except Exception as e:
-            raise errors.InvalidTestDriverError('Failed to create sqlalchemy engine for test driver') from e
+            raise errors.InvalidTestDriverError('Failed to create sqlalchemy engine for test driver', e) from e
     else:
         raise errors.InvalidTestConfigError('Unexpected test-driver: {}'.format(config['test-driver']))
 
@@ -173,12 +173,31 @@ def run_test(test_config, conn_config):
                 results.append(test_replication(src_keys, src_data, dst_keys, dst_data))
     return results
 
+def gather_connections(tests):
+    connections = [x['config']['src']['conn'] for x in tests]
+    connections += [x['config']['dst']['conn'] for x in tests]
+    return list(set(connections))
+
+def test_connection(config):
+    try:
+        print(config)
+        make_test_driver(config)
+    except Exception as e:
+        print(e)
+        return False
+    return True
 
 def run_tests(config):
     init_factory()
     tests = make_explicit_tests(config)
+    conns = gather_connections(tests)
+    good_conns = [x for x in conns if test_connection(config['connections'][x])]
+    print('Connections: good={}, bad={}'.format(good_conns, [x for x in conns if x not in good_conns]))
+    good_tests = [x for x in tests
+                    if x['config']['src']['conn'] in good_conns
+                    and x['config']['dst']['conn'] in good_conns]
     result = []
-    for test in tests:
+    for test in good_tests:
         tmp = copy.deepcopy(test)
         try:
             tmp['result'] = run_test(test, config['connections'])

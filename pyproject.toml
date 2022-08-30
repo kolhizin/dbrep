@@ -15,6 +15,8 @@ PyYAML = ">=5.0"
 pytest = "^6.0.0"
 psycopg2 = "^2.9.3"
 coverage = "^6.0.0"
+cx-Oracle = "^8.3.0"
+mysql-connector-python = "^8.0.30"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
