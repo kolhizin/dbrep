@@ -1,0 +1,19 @@
+templates:
+  sql2sql-base:
+    config:
+      src:
+        table: test_src
+        rid: rid
+      dst:
+        table: test_dst
+        rid: rid
+      modes: [incremental, full-refresh]
+    test:
+      src.cleanup: drop table if exists test_src
+      dst.cleanup: drop table if exists test_dst
+  pg2sql-table-int:
+    test:
+      src.setup: create table test_src (rid serial, col_int integer)
+      dst.setup: create table test_dst (rid integer, col_int integer)
+
+      

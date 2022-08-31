@@ -64,6 +64,12 @@ test_infer_full_refresh
 1 step: create explicit tests
 2 step: create src -> dst structure
 3 step: create templates
+
+Expected output:
+TEST[engine-name@DB, engine-name@DB, test-name]: output
+TEST[engine-name@DB, engine-name@DB]: tests
+
+.csv file with full table
 """
 
 
