@@ -21,6 +21,8 @@ services:
       MYSQL_DATABASE: mysql
       MYSQL_USER: mysql
       MYSQL_PASSWORD: mysql
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_HOST: "%"
     expose:
       - 3306
     healthcheck:
@@ -29,12 +31,17 @@ services:
       interval: 5s
       retries: 20
 
-#  test:
-#    build:
-#      dockerfile: testing-dockerfile
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#      mysql:
-#        condition: service_healthy
-#    command: ["poetry", "run", "python", "test.py"]
+  test:
+    build: .
+    volumes:
+      - ../../:/app
+    command: "python test.py"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+networks:
+  default:
+    name: dbrep_test_network
