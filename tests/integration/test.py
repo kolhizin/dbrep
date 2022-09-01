@@ -84,7 +84,7 @@ logger = logging.getLogger()
 consoleHandler = logging.StreamHandler(stream=sys.stdout)
 consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.CRITICAL)
 
 if __name__ == '__main__':
     test_config = read_test_configs()
