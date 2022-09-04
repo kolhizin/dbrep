@@ -19,7 +19,10 @@ def read_test_configs():
         connections = yaml.safe_load(f.read().decode('utf8'))
 
     tests = read_multi_configs('test_', '.yaml', 'tests')
-    templates = read_multi_configs('template_', '.yaml', 'templates')
+    templates = dbrep.config.unflatten_config(read_multi_configs('template_', '.yaml', 'templates'))
+    print('----------------')
+    print(templates)
+    print('----------------')
     return dbrep.config.unflatten_config({
         'connections': connections,
         'templates': templates,
@@ -36,6 +39,7 @@ def make_explicit_tests(config):
         res = [v for x in res for v in dbrep.config.expand_config(x, 'config.src.conns', 'config.src.conn')]
         res = [v for x in res for v in dbrep.config.expand_config(x, 'config.dst.conns', 'config.dst.conn')]
         res = [v for x in res for v in dbrep.config.expand_config(x, 'tests', 'test')]
+        res = [v for x in res for v in dbrep.config.expand_config(x, 'modes', 'mode')]
         return res
     templates = config.get('templates', [])
     print('template=',templates)

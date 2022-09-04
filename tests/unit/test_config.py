@@ -86,3 +86,8 @@ def test_substitute_config_simple():
 def test_substitute_config_complex():
     assert dbrep.config.substitute_config({'a':'${b}', 'b':2}) == {'a':'2', 'b':2}
     assert dbrep.config.substitute_config({'a':'${b.a}', 'b':{'a':2, 'b': 3}}) == {'a':'2', 'b':{'a':2, 'b': 3}}
+
+def test_unflatten():
+    assert dbrep.config.unflatten_config({'a.b': 3}) == {'a': {'b': 3}}
+    assert dbrep.config.unflatten_config([{'a.b': 3}, {'a.b': 4}]) == [{'a': {'b': 3}}, {'a': {'b': 4}}]
+    assert dbrep.config.unflatten_config({'q':{'a.b': 3}}) == {'q':{'a': {'b': 3}}}

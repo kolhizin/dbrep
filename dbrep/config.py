@@ -53,8 +53,8 @@ def unflatten_config(config: Union[dict, list]) -> Union[dict, list]:
     if isinstance(config, list):
         return [unflatten_config(x) for x in config]
     elif isinstance(config, dict):
-        cfg0 = {k:v for k,v in config.items() if '.' not in k}
-        cfg1 = make_config([(k, v) for k,v in config.items() if '.' in k])
+        cfg0 = {k:unflatten_config(v) for k,v in config.items() if '.' not in k}
+        cfg1 = make_config([(k, unflatten_config(v)) for k,v in config.items() if '.' in k])
         return merge_config(cfg0, cfg1)
     else:
         return config
