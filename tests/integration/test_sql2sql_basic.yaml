@@ -1,0 +1,15 @@
+tests:
+  test_sql2sql:
+    template: [sql2sql-base, pg2sql-table-int]
+    config:
+      src.conns: [postgres, mysql]
+      dst.conns: [postgres, mysql]
+    tests:
+      - name: simple_int
+        src.setup:
+          - insert into test_src (col_int) values (0), (3), (NULL)
+          - insert into test_src (col_int) values (11), (14)
+      - name: range_int
+        src.setup:
+          - insert into test_src (col_int) values (0), (3), (NULL)
+          - insert into test_src (col_int) values (-32768), (32767)

@@ -8,6 +8,7 @@ from config import make_explicit_tests
 from dbrep import create_engine, init_factory
 from dbrep.replication import full_refresh, incremental_update
 import dbrep.utils
+import dbrep.config
 from drivers import TestDriverSQLAlchemy
 
 
@@ -187,58 +188,62 @@ def test_connection(config):
         return False
     return True
 
+def save_result(test, result, connections):
+    src_conn = test['config']['src']['conn']
+    dst_conn = test['config']['dst']['conn']
+    if 'result' in result:
+        result['stage-result'] = [(len([k for k in x if k is None]), len([k for k in x if k is not None]))
+                                            for x in result['result']]
+        result['fin-result'] = (min([x[0] for x in result['stage-result']]), max(x[1] for x in result['stage-result']))
+        result['success'] = 1 if result['fin-result'][1] <= 0 else 0
+    else:
+        result['stage-result'] = [(None, None)]
+        result['fin-result'] = [(None, None)]
+        result['success'] = 0
+
+    result['db-src'] = connections[src_conn].get('db-name', 'XXX')
+    result['db-dst'] = connections[dst_conn].get('db-name', 'YYY')
+    result['engine-src'] = connections[src_conn]['engine']
+    result['engine-dst'] = connections[dst_conn]['engine']
+    result['engine-pair'] = '{}->{}'.format(result['engine-src'], result['engine-dst'])
+    result['db-pair'] = '{}->{}'.format(result['db-src'], result['db-dst'])
+    result['full-pair'] = '{: <8}->{: <8} by {: <8}->{: <8}'.format(
+            result['db-src'], result['db-dst'],
+            result['engine-src'], result['engine-dst']
+        )
+    result['test-name'] = test.get('name', '')
+    result['full-name'] = '[{}, {: <32}]'.format(result['full-pair'], result['test-name'])
+    return dbrep.config.merge_config(test, result)
+
+
 def run_tests(config):
     init_factory()
     tests = make_explicit_tests(config)
-    print('============================')
-    print(tests)
-    print('============================')
+    print('Gathered {} tests'.format(len(tests)))
     conns = gather_connections(tests)
     good_conns = [x for x in conns if test_connection(config['connections'][x])]
     print('Connections: good={}, bad={}'.format(good_conns, [x for x in conns if x not in good_conns]))
     good_tests = [x for x in tests
                     if x['config']['src']['conn'] in good_conns
                     and x['config']['dst']['conn'] in good_conns]
-    result = []
+    results = []
     for test in good_tests:
         #tmp = copy.deepcopy(test)
         try:
-            tmp_result = {'status': 'complete', 'result': run_test(test, config['connections'])}
+            result = {'status': 'complete', 'result': run_test(test, config['connections'])}
         except errors.InvalidTestError as e:
-            tmp_result = {'status': 'invalid-test', 'error': e}
+            result = {'status': 'invalid-test', 'error': e}
         except errors.ReplicationError as e:
-            tmp_result = {'status': 'failed-replication', 'error': e}
+            result = {'status': 'failed-replication', 'error': e}
         except Exception as e:
-            tmp_result = {'status': 'unexpected', 'error': e}
-        src_conn = test['config']['src']['conn']
-        dst_conn = test['config']['dst']['conn']
-        if 'result' in tmp_result:
-            tmp_result['stage-result'] = [(len([k for k in x if k is None]), len([k for k in x if k is not None]))
-                                            for x in tmp_result['result']]
-            tmp_result['fin-result'] = (min([x[0] for x in tmp_result['stage-result']]), max(x[1] for x in tmp_result['stage-result']))
-            tmp_result['success'] = 1 if tmp_result['fin-result'][1] <= 0 else 0
-        else:
-            tmp_result['stage-result'] = [(None, None)]
-            tmp_result['fin-result'] = [(None, None)]
-            tmp_result['success'] = 0
+            result = {'status': 'unexpected', 'error': e}
 
-        tmp_result['db-src'] = config['connections'][src_conn].get('db-name', 'XXX')
-        tmp_result['db-dst'] = config['connections'][dst_conn].get('db-name', 'YYY')
-        tmp_result['engine-src'] = config['connections'][src_conn]['engine']
-        tmp_result['engine-dst'] = config['connections'][dst_conn]['engine']
-        tmp_result['engine-pair'] = '{}->{}'.format(tmp_result['engine-src'], tmp_result['engine-dst'])
-        tmp_result['db-pair'] = '{}->{}'.format(tmp_result['db-src'], tmp_result['db-dst'])
-        tmp_result['full-pair'] = '{: <8}->{: <8} by {: <8}->{: <8}'.format(
-            tmp_result['db-src'], tmp_result['db-dst'],
-            tmp_result['engine-src'], tmp_result['engine-dst']
-        )
-        tmp_result['test-name'] = test.get('name', '')
-        tmp_result['full-name'] = '[{}, {: <32}]'.format(tmp_result['full-pair'], tmp_result['test-name'])
-        print('{} = {} (status={}, error={}, result={})'.format(tmp_result['full-name'], tmp_result['success'], tmp_result['status'], tmp_result.get('error'), tmp_result.get('result')))
-        result.append(tmp_result)
+        result = save_result(test, result, config['connections'])
+        print('{} = {} (status={}, error={}, result={})'.format(result['full-name'], result['success'], result['status'], result.get('error'), result.get('result')))
+        results.append(result)
 
-    for engine_pair in sorted(set([x['engine-pair'] for x in result])):
-        tmp1 = [x for x in result if x['engine-pair'] == engine_pair]
+    for engine_pair in sorted(set([x['engine-pair'] for x in results])):
+        tmp1 = [x for x in results if x['engine-pair'] == engine_pair]
         dash = '-'*len(engine_pair)
         print('{}\n{}\n{}'.format(dash, engine_pair, dash))
         for db_src in sorted(set([x['db-src'] for x in tmp1])):
@@ -248,6 +253,5 @@ def run_tests(config):
                 num_failed = len([x for x in tmp2 if x['success']==0 and x['status'] == 'complete'])
                 num_errors = len([x for x in tmp2 if x['status'] != 'complete'])
                 print('{: <10} to {: <10}: {} success, {} failed, {} errors'.format(db_src, db_dst, num_success, num_failed, num_errors))
-        
 
-    return result
+    return results

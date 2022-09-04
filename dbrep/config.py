@@ -38,15 +38,23 @@ def make_config(list_of_pairs : List[Tuple[str, Any]]) -> dict:
         cur[keys[-1]] = v
     return res
 
-def merge_config(*args : dict) -> dict:
+def merge_handler_override(a, b):
+    return b or a
+
+def merge_handler_expand_or_override(a, b):
+    if isinstance(a, list) and isinstance(b, list):
+        return a + b
+    return b or a
+
+def merge_config(*args : dict, merge_handler=merge_handler_override) -> dict:
     """
     Merge several configs into single one. Later argument overrides the former.
     """
-    def merge_dict(d1, d2):
+    def merge_dict(d1, d2, merge_handler):
         if isinstance(d1, dict) and isinstance(d2, dict):
-            return {k: merge_dict(d1.get(k), d2.get(k)) for k in set.union(set(d1), set(d2))}
-        return d2 or d1 #override with later        
-    return functools.reduce(merge_dict, args, {})
+            return {k: merge_dict(d1.get(k), d2.get(k), merge_handler) for k in set.union(set(d1), set(d2))}
+        return merge_handler(d1, d2) #override with later        
+    return functools.reduce(functools.partial(merge_dict, merge_handler=merge_handler), args, {})
 
 
 def unflatten_config(config: Union[dict, list]) -> Union[dict, list]:
@@ -77,7 +85,7 @@ def flatten_config(config : dict, prefix : str = '') -> dict:
                     for k2, v2 in flatten_config(v, formatter.format(k)).items()})
     return res
 
-def instantiate_templates(config: Union[dict, list], templates: dict, keywords = ['template', 'templates']) -> Union[dict, list]:
+def instantiate_templates(config: Union[dict, list], templates: dict, keywords = ['template', 'templates'], merge_handler = merge_handler_expand_or_override) -> Union[dict, list]:
     """
     Insert template values for `templates` dictionary into config, e.g.
     {
@@ -118,15 +126,14 @@ def instantiate_templates(config: Union[dict, list], templates: dict, keywords =
                 raise TypeError('Template value should be list of strings or single string, but got {}'.format(type(config[k])))
     if not templates_to_use: #exit early
         return config
-
     for t in templates_to_use:
         if t not in templates:
             raise ValueError('Template `{}` not present in templates dictionary'.format(t))
     
-    result = merge_config(config, *[templates[t] for t in templates_to_use])
-    return {k: instantiate_templates(k, templates, keywords=keywords) for k,v in result.items()}
+    result = merge_config(copy.deepcopy(config), *[templates[t] for t in templates_to_use], merge_handler=merge_handler)
+    return {k: instantiate_templates(v, templates, keywords=keywords) for k,v in result.items()}
         
-def expand_config(config: dict, field_from: str, field_to: str):
+def expand_config(config: dict, field_from: str, field_to: str, merge_handler = merge_handler_expand_or_override) -> List[dict]:
     """
     Expand config into multiple items. E.g.
     {
@@ -150,7 +157,7 @@ def expand_config(config: dict, field_from: str, field_to: str):
 
     if not isinstance(tmp, list):
         raise TypeError('Config expansion can be made only on lists, but got {}'.format(type(tmp)))
-    return [merge_config(copy.deepcopy(config), make_config([(field_to, v)])) for v in tmp]
+    return [merge_config(copy.deepcopy(config), unflatten_config({field_to: v}), merge_handler=merge_handler) for v in tmp]
 
 class TemplateDotted(string.Template):
     braceidpattern = r'[_a-z][_a-z0-9\.@\-]*'
