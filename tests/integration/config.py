@@ -2,6 +2,7 @@ import os
 import yaml
 
 from errors import InvalidTestConfigError
+import dbrep.config
 
 def read_multi_configs(prefix, postfix, names):
     files = [x for x in os.listdir('./')
@@ -31,4 +32,7 @@ def is_explicit_test(config):
 
 def make_explicit_tests(config):
     result = [dict(name=k, **v) for k,v in config['tests'].items() if is_explicit_test(v)]
+
+    templates = config.get('templates', [])
+    result += [dbrep.config.instantiate_templates(x, templates) for x in config[]]
     return result
