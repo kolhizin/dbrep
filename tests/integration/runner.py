@@ -227,7 +227,8 @@ def run_tests(config):
                     if x['config']['src']['conn'] in good_conns
                     and x['config']['dst']['conn'] in good_conns]
     results = []
-    for test in good_tests:
+    sorted_tests = sorted(good_tests, key=lambda x: ':'.join([x['name'], x['config']['src']['conn'], x['config']['dst']['conn'], x['config']['mode']]))
+    for test in sorted_tests:
         #tmp = copy.deepcopy(test)
         try:
             result = {'status': 'complete', 'result': run_test(test, config['connections'])}
