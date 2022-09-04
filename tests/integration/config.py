@@ -20,19 +20,24 @@ def read_test_configs():
 
     tests = read_multi_configs('test_', '.yaml', 'tests')
     templates = read_multi_configs('template_', '.yaml', 'templates')
-    return {
+    return dbrep.config.unflatten_config({
         'connections': connections,
         'templates': templates,
         'tests': tests
-    }
+    })
 
 def is_explicit_test(config):
     return 'test' in config and 'config' in config and 'template' not in config \
         and 'tests' not in config and 'configs' not in config
 
 def make_explicit_tests(config):
-    result = [dict(name=k, **v) for k,v in config['tests'].items() if is_explicit_test(v)]
-
+    def expand_test_config(cfg):
+        res = dbrep.config.expand_config(cfg, 'configs', 'config')
+        res = [v for x in res for v in dbrep.config.expand_config(x, 'config.src.conns', 'config.src.conn')]
+        res = [v for x in res for v in dbrep.config.expand_config(x, 'config.dst.conns', 'config.dst.conn')]
+        res = [v for x in res for v in dbrep.config.expand_config(x, 'tests', 'test')]
+        return res
     templates = config.get('templates', [])
-    result += [dbrep.config.instantiate_templates(x, templates) for x in config[]]
-    return result
+    print('template=',templates)
+    res = [dbrep.config.instantiate_templates(x, templates) for x in config['tests']]
+    return [v for x in res for v in expand_test_config(x)]

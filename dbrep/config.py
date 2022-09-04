@@ -17,7 +17,7 @@ So there must be a way to combine these multiple configs into single one. This c
 import string
 import functools
 import copy
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 
 def make_config(list_of_pairs : List[Tuple[str, Any]]) -> dict:
@@ -49,6 +49,17 @@ def merge_config(*args : dict) -> dict:
     return functools.reduce(merge_dict, args, {})
 
 
+def unflatten_config(config: Union[dict, list]) -> Union[dict, list]:
+    if isinstance(config, list):
+        return [unflatten_config(x) for x in config]
+    elif isinstance(config, dict):
+        cfg0 = {k:v for k,v in config.items() if '.' not in k}
+        cfg1 = make_config([(k, v) for k,v in config.items() if '.' in k])
+        return merge_config(cfg0, cfg1)
+    else:
+        return config
+
+
 def flatten_config(config : dict, prefix : str = '') -> dict:
     """
     Convert config into flat map like a.b.c -> 1, a.b.d ->2, etc.
@@ -66,7 +77,7 @@ def flatten_config(config : dict, prefix : str = '') -> dict:
                     for k2, v2 in flatten_config(v, formatter.format(k)).items()})
     return res
 
-def instantiate_templates(config: dict, templates: dict, keywords = ['template', 'templates']) -> dict:
+def instantiate_templates(config: Union[dict, list], templates: dict, keywords = ['template', 'templates']) -> Union[dict, list]:
     """
     Insert template values for `templates` dictionary into config, e.g.
     {
@@ -90,6 +101,10 @@ def instantiate_templates(config: dict, templates: dict, keywords = ['template',
         return config
     if not templates:
         return config
+    if isinstance(config, list):
+        return [instantiate_templates(x, templates, keywords=keywords) for x in config]
+    if not isinstance(config, dict):
+        return config
     templates_to_use = []
     for k in keywords:
         if k in config:
@@ -111,6 +126,31 @@ def instantiate_templates(config: dict, templates: dict, keywords = ['template',
     result = merge_config(config, *[templates[t] for t in templates_to_use])
     return {k: instantiate_templates(k, templates, keywords=keywords) for k,v in result.items()}
         
+def expand_config(config: dict, field_from: str, field_to: str):
+    """
+    Expand config into multiple items. E.g.
+    {
+        "values": [7, 10]
+    }
+    Will get expanded into
+    [
+        {
+            "value": 7
+        },
+        {
+            "value": 8
+        }
+    ]
+    """
+    tmp = config
+    for p in field_from.split('.'):
+        if p not in tmp:
+            return [config]
+        tmp = tmp[p]
+
+    if not isinstance(tmp, list):
+        raise TypeError('Config expansion can be made only on lists, but got {}'.format(type(tmp)))
+    return [merge_config(copy.deepcopy(config), make_config([(field_to, v)])) for v in tmp]
 
 class TemplateDotted(string.Template):
     braceidpattern = r'[_a-z][_a-z0-9\.@\-]*'

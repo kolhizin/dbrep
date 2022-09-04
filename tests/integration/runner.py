@@ -190,6 +190,9 @@ def test_connection(config):
 def run_tests(config):
     init_factory()
     tests = make_explicit_tests(config)
+    print('============================')
+    print(tests)
+    print('============================')
     conns = gather_connections(tests)
     good_conns = [x for x in conns if test_connection(config['connections'][x])]
     print('Connections: good={}, bad={}'.format(good_conns, [x for x in conns if x not in good_conns]))
